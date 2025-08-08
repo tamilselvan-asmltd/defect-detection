@@ -8,68 +8,67 @@ on:
 
 jobs:
   defect-detection:
-    runs-on: self-hosted  # Your local Mac self-hosted runner
+    runs-on: self-hosted  # Local Mac self-hosted runner
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Set up Python environment (venv)
-      run: |
-        python3 -m venv venv
-        source venv/bin/activate
-        python -m pip install --upgrade pip
-        python -m pip install mlflow==2.12.1 protobuf==3.20.3
-        python -m pip install -r requirements.txt
-      shell: bash
+      - name: Set up Python environment (venv)
+        shell: bash
+        run: |
+          python3 -m venv venv
+          source venv/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install mlflow==2.12.1 protobuf==3.20.3
+          python -m pip install -r requirements.txt
 
-    - name: (Optional) Clean old MLflow artifacts
-      run: |
-        rm -rf mlruns.db mlruns
-      shell: bash
+      - name: (Optional) Clean old MLflow artifacts
+        shell: bash
+        run: |
+          rm -rf mlruns.db mlruns
 
-    - name: Start MLflow Tracking Server
-      run: |
-        source venv/bin/activate
-        nohup mlflow server \
-          --host 127.0.0.1 \
-          --port 5000 \
-          --backend-store-uri sqlite:///mlruns.db \
-          --default-artifact-root ./mlruns > mlflow.log 2>&1 &
-        sleep 10
-      shell: bash
+      - name: Start MLflow Tracking Server
+        shell: bash
+        run: |
+          source venv/bin/activate
+          nohup mlflow server \
+            --host 127.0.0.1 \
+            --port 5000 \
+            --backend-store-uri sqlite:///mlruns.db \
+            --default-artifact-root ./mlruns > mlflow.log 2>&1 &
+          sleep 10
 
-    - name: Preprocess Data
-      run: |
-        source venv/bin/activate
-        python preprocess/preprocess.py --config preprocess/config.yaml
-      shell: bash
+      - name: Preprocess Data
+        shell: bash
+        run: |
+          source venv/bin/activate
+          python preprocess/preprocess.py --config preprocess/config.yaml
 
-    - name: Train Model
-      run: |
-        source venv/bin/activate
-        python training/train.py --config training/config.yaml --mlflow_config mlflow_config.yaml
-      shell: bash
+      - name: Train Model
+        shell: bash
+        run: |
+          source venv/bin/activate
+          python training/train.py --config training/config.yaml --mlflow_config mlflow_config.yaml
 
-    - name: Evaluate Model
-      run: |
-        source venv/bin/activate
-        python evaluation/evaluate.py --config evaluation/config.yaml --mlflow_config mlflow_config.yaml
-      shell: bash
+      - name: Evaluate Model
+        shell: bash
+        run: |
+          source venv/bin/activate
+          python evaluation/evaluate.py --config evaluation/config.yaml --mlflow_config mlflow_config.yaml
 
-    - name: Deploy Model (Set 'prod' alias)
-      run: |
-        echo "If evaluation is successful, the 'prod' alias will be set for the model."
-        echo "This is handled within the evaluation/evaluate.py script."
-      shell: bash
+      - name: Deploy Model (Set 'prod' alias)
+        shell: bash
+        run: |
+          echo "If evaluation is successful, the 'prod' alias will be set for the model."
+          echo "This is handled within the evaluation/evaluate.py script."
 
-    - name: Run Inference (Example)
-      run: |
-        source venv/bin/activate
-        DUMMY_IMAGE_PATH="data/test/ok_front/cast_ok_0_10.jpeg"
-        if [ -f "$DUMMY_IMAGE_PATH" ]; then
-          python inference/infer.py --config inference/config.yaml --mlflow_config mlflow_config.yaml --image_path "$DUMMY_IMAGE_PATH"
-        else
-          echo "Dummy image not found at $DUMMY_IMAGE_PATH. Skipping inference example."
-        fi
-      shell: bash
+      - name: Run Inference (Example)
+        shell: bash
+        run: |
+          source venv/bin/activate
+          DUMMY_IMAGE_PATH="data/test/ok_front/cast_ok_0_10.jpeg"
+          if [ -f "$DUMMY_IMAGE_PATH" ]; then
+            python inference/infer.py --config inference/config.yaml --mlflow_config mlflow_config.yaml --image_path "$DUMMY_IMAGE_PATH"
+          else
+            echo "Dummy image not found at $DUMMY_IMAGE_PATH. Skipping inference example."
