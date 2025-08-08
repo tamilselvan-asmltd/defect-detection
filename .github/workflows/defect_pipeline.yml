@@ -26,8 +26,9 @@ jobs:
 
     - name: (Optional) Clean old MLflow artifacts (only if fresh run required)
       run: rm -rf mlruns.db mlruns
+      
 
-    - name: Start MLflow Tracking Server
+    - name: Start MLflow Tracking Server .
       run: |
         nohup mlflow server \
           --host 0.0.0.0 \
