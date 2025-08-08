@@ -8,7 +8,7 @@ on:
 
 jobs:
   defect-detection:
-    runs-on: self-hosted  # Local Mac self-hosted runner
+    runs-on: self-hosted  # Local Mac 
 
     steps:
       - name: Checkout repository
