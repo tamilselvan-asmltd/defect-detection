@@ -1,0 +1,10 @@
+artifact_location: file:///Users/tamilselavans/Downloads/defect-detection/mlruns/243629693439012785/models/m-b8dae5018a84423b81996ec59c3ea4fc/artifacts
+creation_timestamp: 1754664503619
+experiment_id: '243629693439012785'
+last_updated_timestamp: 1754664511023
+model_id: m-b8dae5018a84423b81996ec59c3ea4fc
+model_type: null
+name: model
+source_run_id: 8b67916036cd40838cab52e72755df00
+status: 2
+status_message: null

@@ -1,0 +1,39 @@
+name: MLOps Defect Detection Pipeline
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: [self-hosted, macOS, ARM64] # Specify self-hosted macOS ARM64 runner
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python environment
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9' # Or your preferred Python version
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+
+    - name: Set MLflow Tracking URI
+      run: echo "MLFLOW_TRACKING_URI=file:./mlruns" >> $GITHUB_ENV
+
+    - name: Run Training
+      run: python train/train.py
+
+    - name: Run Evaluation
+      run: python evaluation/evaluation.py
+
+    - name: Run Inference Test
+      run: python inference/inference.py

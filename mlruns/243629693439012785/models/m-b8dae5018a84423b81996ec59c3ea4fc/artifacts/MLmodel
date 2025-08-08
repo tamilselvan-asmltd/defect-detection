@@ -1,0 +1,30 @@
+artifact_path: file:///Users/tamilselavans/Downloads/defect-detection/mlruns/243629693439012785/models/m-b8dae5018a84423b81996ec59c3ea4fc/artifacts
+flavors:
+  python_function:
+    data: data
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.tensorflow
+    python_version: 3.11.11
+  tensorflow:
+    code: null
+    data: data
+    keras_version: 2.16.1
+    model_type: keras
+    save_format: tf
+is_signature_from_type_hint: false
+mlflow_version: 3.2.0
+model_id: m-b8dae5018a84423b81996ec59c3ea4fc
+model_size_bytes: 44340253
+model_uuid: m-b8dae5018a84423b81996ec59c3ea4fc
+prompts: null
+run_id: 8b67916036cd40838cab52e72755df00
+signature:
+  inputs: '[{"type": "tensor", "tensor-spec": {"dtype": "uint8", "shape": [-1, 128,
+    128, 3]}}]'
+  outputs: '[{"type": "tensor", "tensor-spec": {"dtype": "float32", "shape": [-1,
+    1]}}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2025-08-08 14:48:26.367998'
