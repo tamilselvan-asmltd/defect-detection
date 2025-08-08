@@ -60,7 +60,7 @@ def evaluate_model(config, mlflow_config, training_run_id):
     
     try:
         # Load the model directly from the training run artifacts
-        model_uri = f"runs:/{training_run_id}/model"
+        model_uri = f"runs:/{training_run_id}/final_model"
         print(f"Loading model from MLflow run: {model_uri} for evaluation.")
         model = mlflow.pytorch.load_model(model_uri)
         model = model.to(device)

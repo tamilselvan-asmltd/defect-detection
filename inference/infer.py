@@ -50,7 +50,7 @@ def infer_image(config, mlflow_config):
         model.eval()
     except Exception as e:
         print(f"Error loading model from MLflow: {e}")
-        print(f"Please ensure a model named '{model_name}' with stage '{model_stage}' exists in MLflow Model Registry.")
+        print(f"Please ensure a model named '{model_name}' with alias '{model_alias}' exists in MLflow Model Registry.")
         return
 
     # Load and preprocess the image

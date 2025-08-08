@@ -147,13 +147,19 @@ def train_model(config, mlflow_config):
                     pytorch_model=model,
                     artifact_path="model"
                 )
-                print(f"Current best test accuracy ({best_accuracy:.4f}) is greater than previous best. Logging model to MLflow.")
-                print(f"Model logged to MLflow with test accuracy: {best_accuracy:.4f}")
+                print(f"Current best test accuracy ({best_accuracy:.4f}) is greater than previous best. Logging best model to MLflow.")
 
                 
 
         mlflow.log_metric("final_best_test_accuracy", best_accuracy)
         print(f"Training complete. Best Test Accuracy: {best_accuracy:.4f}")
+
+        # Log the final model
+        mlflow.pytorch.log_model(
+            pytorch_model=model,
+            artifact_path="final_model"
+        )
+        print("Final model logged to MLflow at artifact_path 'final_model'.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train a defect detection model.")
