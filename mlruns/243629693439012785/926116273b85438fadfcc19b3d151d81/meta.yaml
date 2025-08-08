@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/tamilselavans/Downloads/defect-detection/mlruns/243629693439012785/926116273b85438fadfcc19b3d151d81/artifacts
+end_time: 1754664531065
+entry_point_name: ''
+experiment_id: '243629693439012785'
+lifecycle_stage: active
+run_id: 926116273b85438fadfcc19b3d151d81
+run_name: CNN_Run_3
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1754664520334
+status: 3
+tags: []
+user_id: tamilselavan
