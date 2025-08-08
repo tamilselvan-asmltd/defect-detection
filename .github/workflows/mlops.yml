@@ -4,21 +4,19 @@ on: [push]
 
 jobs:
   build:
-    runs-on: [self-hosted, macOS, ARM64] # Specify self-hosted macOS ARM64 runner
+    runs-on: [self-hosted, macOS, ARM64]
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set RUNNER_TOOL_CACHE
-      run: echo "RUNNER_TOOL_CACHE=${{ runner.workspace }}/.tool_cache" >> $GITHUB_ENV
-
-    - name: Set up Python environment
+    - name: Set up Python 3.9
       uses: actions/setup-python@v5
       with:
-        python-version: '3.9' # Or your preferred Python version
+        python-version: '3.9'
+        architecture: 'arm64'
 
-    - name: Cache pip dependencies
+    - name: Configure pip cache
       uses: actions/cache@v4
       with:
         path: ~/.cache/pip
@@ -26,17 +24,17 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-
 
-    - name: Install dependencies
+    - name: Install Python dependencies
       run: pip install -r requirements.txt
 
     - name: Set MLflow Tracking URI
       run: echo "MLFLOW_TRACKING_URI=file:./mlruns" >> $GITHUB_ENV
 
-    - name: Run Training
+    - name: Run Training Script
       run: python train/train.py
 
-    - name: Run Evaluation
+    - name: Run Evaluation Script
       run: python evaluation/evaluation.py
 
-    - name: Run Inference Test
+    - name: Run Inference Script
       run: python inference/inference.py
