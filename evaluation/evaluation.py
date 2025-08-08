@@ -94,7 +94,7 @@ if __name__ == "__main__":
             for mv in latest_versions:
                 if "prod" in mv.aliases:
                     print(f"Removing existing 'prod' alias from version {mv.version}")
-                    client.delete_registered_model_alias(name=model_name, alias="prod", version=mv.version)
+                    client.delete_registered_model_alias(name=model_name, alias="prod")
             
             # Set 'prod' alias to the best version
             client.set_registered_model_alias(name=model_name, alias="prod", version=best_version_for_prod_alias)
