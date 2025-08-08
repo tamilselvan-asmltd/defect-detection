@@ -1,0 +1,14 @@
+artifact_uri: mlflow-artifacts:/680412359584467840/97317ceb8692412cb9fd0cef34fc3db5/artifacts
+end_time: 1754655257326
+entry_point_name: ''
+experiment_id: '680412359584467840'
+lifecycle_stage: active
+run_id: 97317ceb8692412cb9fd0cef34fc3db5
+run_name: big-perch-509
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1754655144214
+status: 3
+tags: []
+user_id: tamilselavan

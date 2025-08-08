@@ -114,7 +114,7 @@ def evaluate_model(config, mlflow_config, training_run_id):
             registered_model_version = mlflow.register_model(
                 model_uri=f"runs:/{training_run_id}/model",
                 name=registered_model_name,
-                tags={"accuracy": accuracy}
+                tags={"acc": accuracy}
             )
             print(f"Model registered to '{registered_model_name}' with version {registered_model_version.version}.")
 
@@ -124,8 +124,8 @@ def evaluate_model(config, mlflow_config, training_run_id):
             best_model_version = None
 
             for mv in all_versions:
-                if mv.tags and "accuracy" in mv.tags:
-                    current_accuracy = float(mv.tags["accuracy"])
+                if mv.tags and "acc" in mv.tags:
+                    current_accuracy = float(mv.tags["acc"])
                     if current_accuracy > best_accuracy:
                         best_accuracy = current_accuracy
                         best_model_version = mv
@@ -175,7 +175,7 @@ def evaluate_model(config, mlflow_config, training_run_id):
             mlflow.register_model(
                 model_uri=f"runs:/{training_run_id}/model",
                 name=testing_reg,
-                tags={"accuracy": accuracy}
+                tags={"acc": accuracy}
             )
             print(f"Model registered to '{testing_reg}'.")
 
