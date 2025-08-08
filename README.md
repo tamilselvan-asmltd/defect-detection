@@ -113,6 +113,12 @@ The workflow performs the following steps:
 
 ## Troubleshooting
 
+
+
+```
+mlflow server --host 0.0.0.0 --port 5000
+```
+
 *   **`zsh: command not found: --mlflow_config`**: This error occurs if your shell interprets the command as multiple lines. Ensure the entire command (e.g., `python training/train.py --config training/config.yaml --mlflow_config mlflow_config.yaml`) is on a single line.
 *   **`TypeError: save() got an unexpected keyword argument 'tags'` or `'registered_model_tags'`**: This indicates an outdated MLflow installation. Upgrade MLflow: `pip install --upgrade mlflow`.
 *   **`Max retries exceeded with url: ... (Caused by ResponseError('too many 500 error responses'))`**: This usually means the MLflow Tracking Server encountered an internal error. Stop the server (find PID with `lsof -i :5000` then `kill <PID>`) and restart it.
