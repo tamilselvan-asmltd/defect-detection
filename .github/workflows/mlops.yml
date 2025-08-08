@@ -10,11 +10,13 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Set RUNNER_TOOL_CACHE
+      run: echo "RUNNER_TOOL_CACHE=${{ runner.workspace }}/.tool_cache" >> $GITHUB_ENV
+
     - name: Set up Python environment
       uses: actions/setup-python@v5
       with:
         python-version: '3.9' # Or your preferred Python version
-        tool-cache-path: ${{ runner.workspace }}/.tool_cache
 
     - name: Cache pip dependencies
       uses: actions/cache@v4
