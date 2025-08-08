@@ -1,4 +1,4 @@
-name: Defect Detection Pipeline
+name: Defect Detection Pipeline (Local MLflow)
 
 on:
   push:
@@ -6,8 +6,8 @@ on:
       - main
 
 jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
+  defect-detection:
+    runs-on: self-hosted  # Your local Mac or custom runner
 
     steps:
     - name: Checkout repository
@@ -24,7 +24,7 @@ jobs:
         pip install --upgrade --force-reinstall mlflow==2.12.1
         pip install -r requirements.txt
 
-    - name: Clean MLflow database and artifacts
+    - name: (Optional) Clean old MLflow artifacts (only if fresh run required)
       run: rm -rf mlruns.db mlruns
 
     - name: Start MLflow Tracking Server
@@ -34,7 +34,7 @@ jobs:
           --port 5000 \
           --backend-store-uri sqlite:///mlruns.db \
           --default-artifact-root ./mlruns > mlflow.log 2>&1 &
-        sleep 10  # Wait for MLflow to fully start
+        sleep 10  # Give server time to boot
 
     - name: Preprocess Data
       run: python preprocess/preprocess.py --config preprocess/config.yaml
@@ -58,9 +58,3 @@ jobs:
         else
           echo "Dummy image not found at $DUMMY_IMAGE_PATH. Skipping inference example."
         fi
-
-    - name: Archive MLflow Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: mlflow-artifacts
-        path: mlruns
