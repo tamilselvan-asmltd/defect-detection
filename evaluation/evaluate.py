@@ -132,22 +132,22 @@ def evaluate_model(config, mlflow_config, training_run_id):
 
             if best_model_version:
                 # Transition any existing "Production" models to "Archived"
-                for mv in all_versions:
-                    if mv.current_stage == "Production" and mv.version != best_model_version.version:
-                        client.transition_model_version_stage(
-                            name=registered_model_name,
-                            version=mv.version,
-                            stage="Archived"
-                        )
-                        print(f"Transitioned version {mv.version} from 'Production' to 'Archived'.")
+                # for mv in all_versions:
+                #     if mv.current_stage == "Production" and mv.version != best_model_version.version:
+                #         client.transition_model_version_stage(
+                #             name=registered_model_name,
+                #             version=mv.version,
+                #             stage="Archived"
+                #         )
+                #         print(f"Transitioned version {mv.version} from 'Production' to 'Archived'.")
                 
                 # Transition the best model version to "Production"
-                client.transition_model_version_stage(
-                    name=registered_model_name,
-                    version=best_model_version.version,
-                    stage="Production"
-                )
-                print(f"Model version {best_model_version.version} of {registered_model_name} transitioned to 'Production' with accuracy {best_accuracy:.4f}.")
+                # client.transition_model_version_stage(
+                #     name=registered_model_name,
+                #     version=best_model_version.version,
+                #     stage="Production"
+                # )
+                # print(f"Model version {best_model_version.version} of {registered_model_name} transitioned to 'Production' with accuracy {best_accuracy:.4f}.")
 
                 # Download model artifacts to evaluation_area/
                 temp_download_dir = "./temp_mlflow_model_download"
