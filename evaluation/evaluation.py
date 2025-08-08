@@ -59,20 +59,34 @@ if __name__ == "__main__":
 
     # Register model in MLflow Model Registry
     client = MlflowClient()
-    model_name = "Production_Reg" if accuracy >= 0.60 else "Testing_Reg"
+    model_name = "Production_Reg" if accuracy >= 0.61 else "Testing_Reg"
+    print(f"Model name chosen for registration: {model_name}")
 
-    with mlflow.start_run(run_id=best_run_id) as run:
-        # Log evaluation metrics to the same run as training
-        mlflow.log_metric("test_accuracy", accuracy)
+    if model_name == "Testing_Reg":
+        with mlflow.start_run() as run:  # Start a new run for Testing_Reg
+            mlflow.log_metric("test_accuracy", accuracy)
+            mlflow.keras.log_model(loaded_model, "model")
+            model_uri = f"runs:/{run.info.run_id}/model"
+            registered_model = mlflow.register_model(
+                model_uri=model_uri,
+                name=model_name,
+                tags={"acc": str(accuracy)}
+            )
+            print(f"Model registered as {model_name} version {registered_model.version}")
+    else: # model_name == "Production_Reg"
+        with mlflow.start_run(run_id=best_run_id) as run:
+            # Log evaluation metrics to the same run as training
+            mlflow.log_metric("test_accuracy", accuracy)
+            mlflow.keras.log_model(loaded_model, "model")
 
-        # Register the model
-        model_uri = f"runs:/{best_run_id}/model"
-        registered_model = mlflow.register_model(
-            model_uri=model_uri,
-            name=model_name,
-            tags={"acc": str(accuracy)}
-        )
-        print(f"Model registered as {model_name} version {registered_model.version}")
+            # Register the model
+            model_uri = f"runs:/{best_run_id}/model"
+            registered_model = mlflow.register_model(
+                model_uri=model_uri,
+                name=model_name,
+                tags={"acc": str(accuracy)}
+            )
+            print(f"Model registered as {model_name} version {registered_model.version}")
 
     # Manage aliases for Production_Reg
     if model_name == "Production_Reg":
