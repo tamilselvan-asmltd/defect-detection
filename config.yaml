@@ -2,9 +2,9 @@ paths:
   data_path: data
 
 model_parameters:
-  image_size: [128, 128]
+  image_size: [256, 256]
   batch_size: 32
-  epochs: 6
+  epochs: 50
 
 model_training_parameters:
   model_path: temp_best_model
@@ -23,7 +23,7 @@ mlflow:
   inference_model_name: Production_Reg
   inference_model_alias: prod
   experiment_name: Defect_Detection_CNN
-  evaluation_threshold: 0.61
+  evaluation_threshold: 0.70
   production_model_name: Production_Reg
   testing_model_name: Testing_Reg
 
