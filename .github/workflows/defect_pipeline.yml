@@ -4,31 +4,27 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   defect-detection:
-    runs-on: self-hosted  # Your local Mac or custom runner
+    runs-on: self-hosted  # This is your local Mac self-hosted runner
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
-
-    - name: Install dependencies
+    - name: Use System Python
       run: |
-        pip install --upgrade pip
-        pip install --upgrade --force-reinstall mlflow==2.12.1
-        pip install -r requirements.txt
+        echo "Using system Python version: $(python3 --version)"
+        python3 -m pip install --upgrade pip
+        python3 -m pip install --upgrade --force-reinstall mlflow==2.12.1
+        python3 -m pip install -r requirements.txt
 
-    - name: (Optional) Clean old MLflow artifacts (only if fresh run required)
+    - name: (Optional) Clean old MLflow artifacts
       run: rm -rf mlruns.db mlruns
-      
 
-    - name: Start MLflow Tracking Server .
+    - name: Start MLflow Tracking Server
       run: |
         nohup mlflow server \
           --host 0.0.0.0 \
@@ -38,13 +34,13 @@ jobs:
         sleep 10  # Give server time to boot
 
     - name: Preprocess Data
-      run: python preprocess/preprocess.py --config preprocess/config.yaml
+      run: python3 preprocess/preprocess.py --config preprocess/config.yaml
 
     - name: Train Model
-      run: python training/train.py --config training/config.yaml --mlflow_config mlflow_config.yaml
+      run: python3 training/train.py --config training/config.yaml --mlflow_config mlflow_config.yaml
 
     - name: Evaluate Model
-      run: python evaluation/evaluate.py --config evaluation/config.yaml --mlflow_config mlflow_config.yaml
+      run: python3 evaluation/evaluate.py --config evaluation/config.yaml --mlflow_config mlflow_config.yaml
 
     - name: Deploy Model (Set 'prod' alias)
       run: |
@@ -55,7 +51,7 @@ jobs:
       run: |
         DUMMY_IMAGE_PATH="data/test/ok_front/cast_ok_0_10.jpeg"
         if [ -f "$DUMMY_IMAGE_PATH" ]; then
-          python inference/infer.py --config inference/config.yaml --mlflow_config mlflow_config.yaml --image_path "$DUMMY_IMAGE_PATH"
+          python3 inference/infer.py --config inference/config.yaml --mlflow_config mlflow_config.yaml --image_path "$DUMMY_IMAGE_PATH"
         else
           echo "Dummy image not found at $DUMMY_IMAGE_PATH. Skipping inference example."
         fi
