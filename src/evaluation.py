@@ -3,6 +3,7 @@ import mlflow
 from mlflow.tracking import MlflowClient
 import os
 import numpy as np
+import yaml
 from dotenv import load_dotenv
 from sklearn.metrics import accuracy_score
 
@@ -11,8 +12,14 @@ load_dotenv()
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI")
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 
-IMAGE_SIZE = (128, 128)
-BATCH_SIZE = 32
+# Load configuration from config.yaml
+with open('config.yaml', 'r') as f:
+    config = yaml.safe_load(f)
+
+IMAGE_SIZE = tuple(config['model_parameters']['image_size'])
+BATCH_SIZE = config['model_parameters']['batch_size']
+
+mlflow.set_experiment(f"eval_{config['mlflow']['experiment_name']}")
 
 if __name__ == "__main__":
     # Read best model info from file
@@ -36,7 +43,7 @@ if __name__ == "__main__":
     print(f"Loading best model from: {best_model_local_path}")
     loaded_model = tf.keras.models.load_model(best_model_local_path)
 
-    data_dir = os.path.join(os.getcwd(), 'data')
+    data_dir = os.path.join(os.getcwd(), config['paths']['data_path'])
     test_dir = os.path.join(data_dir, 'test')
 
     test_ds = tf.keras.utils.image_dataset_from_directory(
@@ -59,10 +66,10 @@ if __name__ == "__main__":
 
     # Register model in MLflow Model Registry
     client = MlflowClient()
-    model_name = "Production_Reg" if accuracy >= 0.61 else "Testing_Reg"
+    model_name = config['mlflow']['production_model_name'] if accuracy >= config['mlflow']['evaluation_threshold'] else config['mlflow']['testing_model_name']
     print(f"Model name chosen for registration: {model_name}")
 
-    if model_name == "Testing_Reg":
+    if model_name == config['mlflow']['testing_model_name']:
         with mlflow.start_run() as run:  # Start a new run for Testing_Reg
             mlflow.log_metric("test_accuracy", accuracy)
             mlflow.keras.log_model(loaded_model, "model")
@@ -73,8 +80,8 @@ if __name__ == "__main__":
                 tags={"acc": str(accuracy)}
             )
             print(f"Model registered as {model_name} version {registered_model.version}")
-    else: # model_name == "Production_Reg"
-        with mlflow.start_run(run_id=best_run_id) as run:
+    else: # model_name == config['mlflow']['production_model_name']
+        with mlflow.start_run() as run:
             # Log evaluation metrics to the same run as training
             mlflow.log_metric("test_accuracy", accuracy)
             mlflow.keras.log_model(loaded_model, "model")
@@ -89,7 +96,7 @@ if __name__ == "__main__":
             print(f"Model registered as {model_name} version {registered_model.version}")
 
     # Manage aliases for Production_Reg
-    if model_name == "Production_Reg":
+    if model_name == config['mlflow']['production_model_name']:
         print(f"Managing aliases for {model_name}...")
         latest_versions = client.search_model_versions(f"name='{model_name}'")
 

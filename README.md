@@ -16,11 +16,9 @@ This project implements an MLOps pipeline for training a Convolutional Neural Ne
 │   └── test/
 │       ├── def_front/
 │       └── ok_front/
-├── train/
-│   └── train.py
-├── evaluation/
-│   └── evaluation.py
-├── inference/
+├── src/
+│   ├── train.py
+│   ├── evaluation.py
 │   └── inference.py
 ├── requirements.txt
 ├── README.md
@@ -29,13 +27,13 @@ This project implements an MLOps pipeline for training a Convolutional Neural Ne
 
 ## Features
 
--   **Training (`train/train.py`):**
+-   **Training (`src/train.py`):**
     -   Trains a CNN image classifier using TensorFlow.
     -   Performs training with 3 different hyperparameter sets.
-    -   Tracks all runs (metrics, parameters, artifacts) in MLflow.
+    -   Tracks all runs (metrics, parameters, artifacts) in MLflow, with experiment names prefixed by `train/`.
     -   Automatically determines and saves the model with the highest validation accuracy.
 
--   **Evaluation (`evaluation/evaluation.py`):**
+-   **Evaluation (`src/evaluation.py`):**
     -   Loads the best model from training.
     -   Evaluates it on an unseen test dataset (`data/test`).
     -   Registers the model in MLflow Model Registry under "Production_Reg" (if accuracy >= 60%) or "Testing_Reg" (if accuracy < 60%).
@@ -73,7 +71,75 @@ This project implements an MLOps pipeline for training a Convolutional Neural Ne
 4.  **Configure MLflow Tracking URI:**
     Create a `.env` file in the project root with the following content:
     ```
-    MLFLOW_TRACKING_URI=file:./mlruns
+        This configures MLflow to store tracking data locally in the `mlruns` directory. For a remote MLflow server, replace `file:./mlruns` with your server's URI (e.g., `http://your-mlflow-server:5000`).
+
+## Workflow Diagram
+
+```mermaid
+graph TD
+    A[Push to GitHub] --> B{GitHub Actions Workflow Triggered}
+    B --> C[Checkout Code]
+    C --> D[Setup Python Environment]
+    D --> E[Install Dependencies]
+    E --> F[Set MLflow Tracking URI]
+    F --> G[Run Training Script (src/train.py)]
+    G --> H[Log Training Metrics & Model to MLflow]
+    H --> I[Run Evaluation Script (src/evaluation.py)]
+    I --> J[Evaluate Model & Log Metrics to MLflow]
+    J --> K{Accuracy >= Threshold?}
+    K -- Yes --> L[Register Model as Production_Reg]
+    K -- No --> M[Register Model as Testing_Reg]
+    L --> N[Manage Production_Reg Aliases (set 'prod' to best version)]
+    M --> O[Run Inference Script (src/inference.py)]
+    N --> O
+    O --> P[Load 'prod' Model from MLflow Registry]
+    P --> Q[Perform Inference on Sample Images]
+    Q --> R[End]
+```
+
+## Running Locally
+
+Ensure your virtual environment is activated.
+
+1.  **Start MLflow Tracking Server (Optional, but Recommended for UI):**
+    If you want to view the MLflow UI and track experiments locally, start the MLflow UI server in a separate terminal:
+    ```bash
+    mlflow ui --host 0.0.0.0 --port 5000
+    ```
+    Then open your web browser and navigate to `http://localhost:5000`.
+
+2.  **Run Training:**
+    This will train the models, log runs to MLflow under the `train/` experiment, and save the best model's information.
+    ```bash
+    python src/train.py
+    ```
+
+3.  **Run Evaluation:**
+    This will load the best model, evaluate it, and register it in the MLflow Model Registry. Evaluation runs will be logged under the `eval/` experiment.
+    ```bash
+    python src/evaluation.py
+    ```
+
+4.  **Run Inference:**
+    This will pull the production model and perform sample inferences.
+    ```bash
+    python src/inference.py
+    ```
+
+## GitHub Actions CI/CD
+
+The `.github/workflows/mlops.yml` file defines the CI/CD pipeline. It is configured to run on a `self-hosted` macOS ARM64 runner upon every push to the repository.
+
+**Setting up a Self-Hosted Runner:**
+
+To use the GitHub Actions workflow, you need to set up a self-hosted runner on your macOS ARM machine. Follow the official GitHub documentation for setting up self-hosted runners:
+
+[Adding self-hosted runners - GitHub Docs](https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/adding-self-hosted-runners)
+
+Ensure your self-hosted runner is configured with the labels `macOS` and `ARM64` (or whatever labels you define in your runner setup) to match the `runs-on` configuration in `mlops.yml`.
+
+Once set up, any push to your repository will trigger the workflow, executing the training, evaluation, and inference steps automatically.
+
     ```
     This configures MLflow to store tracking data locally in the `mlruns` directory. For a remote MLflow server, replace `file:./mlruns` with your server's URI (e.g., `http://your-mlflow-server:5000`).
 
@@ -81,30 +147,30 @@ This project implements an MLOps pipeline for training a Convolutional Neural Ne
 
 Ensure your virtual environment is activated.
 
-1.  **Run Training:**
-    This will train the models, log runs to MLflow, and save the best model's information.
+1.  **Start MLflow Tracking Server (Optional, but Recommended for UI):**
+    If you want to view the MLflow UI and track experiments locally, start the MLflow UI server in a separate terminal:
     ```bash
-    python train/train.py
+    mlflow ui --host 0.0.0.0 --port 5000
+    ```
+    Then open your web browser and navigate to `http://localhost:5000`.
+
+2.  **Run Training:**
+    This will train the models, log runs to MLflow under the `train/` experiment, and save the best model's information.
+    ```bash
+    python src/train.py
     ```
 
-2.  **Run Evaluation:**
-    This will load the best model, evaluate it, and register it in the MLflow Model Registry.
+3.  **Run Evaluation:**
+    This will load the best model, evaluate it, and register it in the MLflow Model Registry. Evaluation runs will be logged under the `eval/` experiment.
     ```bash
-    python evaluation/evaluation.py
+    python src/evaluation.py
     ```
 
-3.  **Run Inference:**
+4.  **Run Inference:**
     This will pull the production model and perform sample inferences.
     ```bash
-    python inference/inference.py
+    python src/inference.py
     ```
-
-4.  **View MLflow UI:**
-    After running the scripts, you can view the MLflow UI to inspect runs, metrics, parameters, and the model registry:
-    ```bash
-    mlflow ui
-    ```
-    Then open your web browser and navigate to `http://localhost:5000` (or the port indicated by MLflow).
 
 ## GitHub Actions CI/CD
 

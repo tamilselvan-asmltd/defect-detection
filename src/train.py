@@ -4,17 +4,23 @@ import mlflow.tensorflow
 from mlflow.entities import ViewType
 import os
 import numpy as np
+import yaml
 from dotenv import load_dotenv
 
 load_dotenv()
 
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI")
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-mlflow.set_experiment("Defect_Detection_CNN_Training")
 
-IMAGE_SIZE = (128, 128)
-BATCH_SIZE = 32
-EPOCHS = 6 # Reduced for faster execution in CI/CD, can be increased
+# Load configuration from config.yaml
+with open('config.yaml', 'r') as f:
+    config = yaml.safe_load(f)
+
+mlflow.set_experiment(f"train_{config['mlflow']['experiment_name']}")
+
+IMAGE_SIZE = tuple(config['model_parameters']['image_size'])
+BATCH_SIZE = config['model_parameters']['batch_size']
+EPOCHS = config['model_parameters']['epochs']
 
 def create_cnn_model(input_shape, num_filters, kernel_size, activation='relu'):
     model = tf.keras.Sequential([
@@ -30,7 +36,7 @@ def create_cnn_model(input_shape, num_filters, kernel_size, activation='relu'):
     return model
 
 if __name__ == "__main__":
-    data_dir = os.path.join(os.getcwd(), 'data')
+    data_dir = os.path.join(os.getcwd(), config['paths']['data_path'])
     train_dir = os.path.join(data_dir, 'train')
     test_dir = os.path.join(data_dir, 'test') # Used for validation in this script
 
@@ -54,12 +60,7 @@ if __name__ == "__main__":
         shuffle=False # No need to shuffle validation data
     )
 
-    # Hyperparameter sets to experiment with
-    hyperparameter_sets = [
-        {"learning_rate": 0.001, "num_filters": 16, "kernel_size": (3, 3)},
-        {"learning_rate": 0.0005, "num_filters": 32, "kernel_size": (3, 3)},
-        {"learning_rate": 0.001, "num_filters": 32, "kernel_size": (5, 5)},
-    ]
+    hyperparameter_sets = config['model_training_parameters']['hyperparameter_sets']
 
     best_val_accuracy = -1
     best_run_id = None
@@ -100,7 +101,7 @@ if __name__ == "__main__":
                 best_run_id = run.info.run_id
                 
                 # Save the best model locally
-                temp_model_path = "temp_best_model"
+                temp_model_path = config['model_training_parameters']['model_path']
                 if not os.path.exists(temp_model_path):
                     os.makedirs(temp_model_path)
                 

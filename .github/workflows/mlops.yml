@@ -32,10 +32,10 @@ jobs:
       run: echo "MLFLOW_TRACKING_URI=http://localhost:5000/" >> $GITHUB_ENV
 
     - name: Run Training Script
-      run: python train/train.py
+      run: python src/train.py
 
     - name: Run Evaluation Script
-      run: python evaluation/evaluation.py
+      run: python src/evaluation.py
 
     - name: Run Inference Script
-      run: python inference/inference.py
+      run: python src/inference.py

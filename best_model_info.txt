@@ -1,2 +1,2 @@
-run_id:727da1213d8f407d8a1564a7a4ea62e3
+run_id:e8a39b5aab25426382ebde6669c6d6ee
 model_path:temp_best_model/best_cnn_model.keras
