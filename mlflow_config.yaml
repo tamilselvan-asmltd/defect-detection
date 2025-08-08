@@ -1,2 +1,0 @@
-mlflow_tracking_uri: http://localhost:5000
-artifact_location: ./mlruns
