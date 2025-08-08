@@ -1,103 +1,59 @@
-name: Pipeline for model training, evaluation and inference
+
+name: Defect Detection Pipeline
 
 on:
   push:
-    branches: [main,feature/*]
-  workflow_dispatch:
+    branches:
+      - main
 
 jobs:
-  setup-env:
-    name:  Setup Python Virtual Environment
-    runs-on: [self-hosted, self-hosted] # Use the label you assigned to your runner
-    
-    outputs:
-      venv_path: ${{ steps.set-path.outputs.venv }}
+  build-and-deploy:
+    runs-on: ubuntu-latest
 
     steps:
-      - name:  Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name:  create virtual environment and install packages
-        id: set-path
-        run: |
-          VENV_PATH="$HOME/Documents/.venv" # Or any other path on your local machine
-          mkdir -p "$(dirname "$VENV_PATH")"
-          echo "venv=$VENV_PATH" >> $GITHUB_OUTPUT
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
 
-          # Using standard venv and pip. If you have uv installed and prefer it,
-          # you can revert these lines to use uv venv and uv pip install.
-          python3 -m venv "$VENV_PATH"
-          source "$VENV_PATH/bin/activate"
-          pip install --upgrade pip
-          pip install -r requirements.txt
-        shell: /bin/bash -e {0}
+    - name: Install dependencies
+      run: pip install -r requirements.txt
 
-  runTrainEvaluationModel:
-    name:  Run Train Model and evaluation Pipeline stage
-    runs-on: [self-hosted, self-hosted] # Use the label you assigned to your runner
-    needs: setup-env
-    
-    steps:
-      - name:  Checkout repository
-        uses: actions/checkout@v4
+    - name: Start MLflow Tracking Server (for local artifact storage)
+      run: |
+        mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:///mlruns.db --default-artifact-root ./mlruns &
+        sleep 5 # Give MLflow server time to start
 
-      - name: ▶️ Run  pipeline step for model Trains and Evaluation
-        env:
-            # Point to your local MLflow server
-            MLFLOW_TRACKING_URI: http://localhost:5000
-            PYTHONUNBUFFERED: 1
-            MLFLOW_EXPERIMENT_NAME: Defect Detection Experiment # You can hardcode or use a GitHub variable here
+    - name: Preprocess Data
+      run: python preprocess/preprocess.py --config preprocess/config.yaml
 
-        run: |
-           VENV_PATH="${{ needs.setup-env.outputs.venv_path }}"
-           if [ ! -d "$VENV_PATH" ]; then
-             echo "❌ Venv not found at $VENV_PATH"
-             exit 1
-           fi
-           source "$VENV_PATH/bin/activate"
-           echo "Model Train execution starts.... " 
-           python training/train.py # Assuming your train script is training/train.py based on folder structure
-           echo "Model Evaluation execution starts.... " 
-           python evaluation/evaluate.py # Assuming your evaluate script is evaluation/evaluate.py
-           echo "Model Evaluation completed.... "  
-          
-        shell: /bin/bash -e {0}
-        working-directory: ${{ github.workspace }} 
-      
-      - name:  Upload trained model artifact
-        if: github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
-        with:
-          name: casting_model_h5
-          path: models/ # Adjust if your model output path is different
+    - name: Train Model
+      run: python training/train.py --config training/config.yaml --mlflow_config mlflow_config.yaml
 
-  
-  runInferenceStage:
-    name:  Run Inference Pipeline stage
-    runs-on: [self-hosted, self-hosted] # Use the label you assigned to your runner
-    needs: 
-      - setup-env
-      - runTrainEvaluationModel
-   
-    steps:
-      - name:  Checkout repository
-        uses: actions/checkout@v4
+    - name: Evaluate Model
+      run: python evaluation/evaluate.py --config evaluation/config.yaml --mlflow_config mlflow_config.yaml
 
-      - name: ▶️ Run  pipeline step for  inference check
-        env:
-            # Point to your local MLflow server
-            MLFLOW_TRACKING_URI: http://localhost:5000
-            PYTHONUNBUFFERED: 1
-            MLFLOW_EXPERIMENT_NAME: Defect Detection Experiment # Consistent with training/evaluation
+    - name: Deploy Model (Set 'prod' alias)
+      run: |
+        echo "If evaluation is successful, the 'prod' alias will be set for the model."
+        echo "This is handled within the evaluation/evaluate.py script."
 
-        run: |
-           VENV_PATH="${{ needs.setup-env.outputs.venv_path }}"
-           if [ ! -d "$VENV_PATH" ]; then
-             echo "❌ Venv not found at $VENV_PATH"
-             exit 1
-           fi
-           source "$VENV_PATH/bin/activate"
-           echo "Model Inference execution starts.... " 
-           python inference/infer.py # Assuming your infer script is inference/infer.py
-        shell: /bin/bash -e {0}
-        working-directory: ${{ github.workspace }}
+    - name: Run Inference (Example)
+      run: |
+        # This step demonstrates inference. In a real scenario, this would be a separate service.
+        # For this example, we'll use a dummy image path. Replace with a real test image if available.
+        DUMMY_IMAGE_PATH="data/test/ok_front/cast_ok_0_10.jpeg" # Replace with an actual image path from your test set
+        if [ -f "$DUMMY_IMAGE_PATH" ]; then
+          python inference/infer.py --config inference/config.yaml --mlflow_config mlflow_config.yaml --image_path "$DUMMY_IMAGE_PATH"
+        else
+          echo "Dummy image not found at $DUMMY_IMAGE_PATH. Skipping inference example."
+        fi
+
+    - name: Archive MLflow artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: mlflow-artifacts
+        path: mlruns
