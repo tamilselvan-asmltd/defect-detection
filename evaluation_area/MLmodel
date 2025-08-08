@@ -1,4 +1,4 @@
-artifact_path: mlflow-artifacts:/115452712715741901/models/m-7846d69f476d4b6e997a7d52d848da5e/artifacts
+artifact_path: mlflow-artifacts:/115452712715741901/models/m-c5bd977313dc4b23806e1437a1f87fab/artifacts
 flavors:
   python_function:
     config:
@@ -15,9 +15,9 @@ flavors:
     model_data: data
     pytorch_version: 2.8.0
 mlflow_version: 3.2.0
-model_id: m-7846d69f476d4b6e997a7d52d848da5e
+model_id: m-c5bd977313dc4b23806e1437a1f87fab
 model_size_bytes: 44793959
-model_uuid: m-7846d69f476d4b6e997a7d52d848da5e
+model_uuid: m-c5bd977313dc4b23806e1437a1f87fab
 prompts: null
-run_id: 990e421e379b4fc890271a472b1139b8
-utc_time_created: '2025-08-08 06:13:28.657184'
+run_id: 001873b8e99047c58292af0000ce0884
+utc_time_created: '2025-08-08 07:40:30.083146'
