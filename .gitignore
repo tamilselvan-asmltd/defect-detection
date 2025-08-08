@@ -32,3 +32,6 @@ temp_best_model/
 .env
 temp_best_model/
 *.keras
+
+temp_best_model/
+*.keras
