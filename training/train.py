@@ -24,6 +24,7 @@ def train_model(config, mlflow_config):
     mlflow.set_experiment("Defect Detection Training")
 
     with mlflow.start_run() as run:
+        print(f"mlflow_run_id: {run.info.run_id}")
         # Log hyperparameters
         mlflow.log_params({
             "model_name": config['model_name'],
@@ -144,8 +145,7 @@ def train_model(config, mlflow_config):
                 # Log the best model to MLflow
                 mlflow.pytorch.log_model(
                     pytorch_model=model,
-                    artifact_path="model",
-                    registered_model_name="DefectDetectionModel"
+                    artifact_path="model"
                 )
                 print(f"Current best test accuracy ({best_accuracy:.4f}) is greater than previous best. Logging model to MLflow.")
                 print(f"Model logged to MLflow with test accuracy: {best_accuracy:.4f}")
