@@ -1,6 +1,6 @@
 processed_data_dir: data/processed
+registered_model_name: production_reg
 model_name: DefectDetectionModel
-model_alias: prod
 threshold: 0.30
 output_dir: evaluation_area
 batch_size: 64

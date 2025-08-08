@@ -35,18 +35,21 @@ jobs:
           python preprocess/preprocess.py --config preprocess/config.yaml
 
       - name: Train Model
+        id: train_model_step
         shell: bash
         run: |
           source venv/bin/activate
           export MLFLOW_TRACKING_URI=http://localhost:5000
-          python training/train.py --config training/config.yaml --mlflow_config mlflow_config.yaml
+          TRAINING_RUN_ID=$(python training/train.py --config training/config.yaml --mlflow_config mlflow_config.yaml | grep "mlflow_run_id:" | awk '{print $2}')
+          echo "mlflow_run_id: $TRAINING_RUN_ID"
+          echo "training_run_id=$TRAINING_RUN_ID" >> $GITHUB_OUTPUT
 
       - name: Evaluate Model
         shell: bash
         run: |
           source venv/bin/activate
           export MLFLOW_TRACKING_URI=http://localhost:5000
-          python evaluation/evaluate.py --config evaluation/config.yaml --mlflow_config mlflow_config.yaml
+          python evaluation/evaluate.py --config evaluation/config.yaml --mlflow_config mlflow_config.yaml --training_run_id ${{ steps.train_model_step.outputs.training_run_id }}
 
       - name: Deploy Model (Set 'prod' alias)
         shell: bash

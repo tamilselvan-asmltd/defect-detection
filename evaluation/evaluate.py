@@ -18,13 +18,14 @@ def load_mlflow_config(config_path):
     with open(config_path, 'r') as f:
         return yaml.safe_load(f)
 
-def evaluate_model(config, mlflow_config):
+def evaluate_model(config, mlflow_config, training_run_id):
     mlflow.set_tracking_uri(mlflow_config['mlflow_tracking_uri'])
     mlflow.set_experiment("Defect Detection Evaluation")
 
     processed_data_dir = config['processed_data_dir']
-    model_name = config['model_name']
-    model_alias = config['model_alias']
+    registered_model_name = config['registered_model_name']
+    production_reg = "production_reg"
+    testing_reg = "testing_reg"
     threshold = config['threshold']
     
     output_dir = config['output_dir']
@@ -56,22 +57,16 @@ def evaluate_model(config, mlflow_config):
 
     client = mlflow.tracking.MlflowClient()
     model = None
-    latest_model_version = None
+    
     try:
-        # Get the latest version of the registered model
-        latest_version_info = client.get_latest_versions(model_name, stages=["None"])
-        if latest_version_info:
-            latest_model_version = latest_version_info[0]
-            model_uri = f"models:/{model_name}/{latest_model_version.version}"
-            print(f"Loading latest model version {latest_model_version.version} from MLflow Model Registry for evaluation.")
-            model = mlflow.pytorch.load_model(model_uri)
-            model = model.to(device)
-            model.eval()
-        else:
-            print(f"No model found with name '{model_name}' in MLflow Model Registry.")
-            return
+        # Load the model directly from the training run artifacts
+        model_uri = f"runs:/{training_run_id}/model"
+        print(f"Loading model from MLflow run: {model_uri} for evaluation.")
+        model = mlflow.pytorch.load_model(model_uri)
+        model = model.to(device)
+        model.eval()
     except Exception as e:
-        print(f"Error loading model from MLflow: {e}")
+        print(f"Error loading model from MLflow run {training_run_id}: {e}")
         return
 
     criterion = nn.CrossEntropyLoss()
@@ -104,7 +99,7 @@ def evaluate_model(config, mlflow_config):
     print(f"  Recall: {recall:.4f}")
     print(f"  F1 Score: {f1:.4f}")
 
-    with mlflow.start_run(run_name="Evaluation Run"):
+    with mlflow.start_run(run_name="Evaluation Run") as run:
         mlflow.log_metrics({
             "eval_loss": avg_loss,
             "eval_accuracy": accuracy,
@@ -113,20 +108,42 @@ def evaluate_model(config, mlflow_config):
             "eval_f1_score": f1
         })
 
-        if accuracy > threshold:
-            print(f"Evaluation accuracy ({accuracy:.4f}) is greater than threshold ({threshold:.4f}).")
-            print(f"Setting '{model_alias}' alias for the model.")
+        # Register the model conditionally
+        if accuracy >= threshold:
+            print(f"Evaluation accuracy ({accuracy:.4f}) is greater than or equal to threshold ({threshold:.4f}). Registering to production registry.")
+            registered_model_version = mlflow.register_model(
+                model_uri=f"runs:/{training_run_id}/model",
+                name=registered_model_name,
+                tags={"accuracy": accuracy}
+            )
+            print(f"Model registered to '{registered_model_name}' with version {registered_model_version.version}.")
 
-            client = mlflow.tracking.MlflowClient()
-            # Get the latest model version (assuming the one just trained is the latest)
-            latest_version = client.get_latest_versions(model_name, stages=["None"])
-            if latest_model_version:
+            # Set alias "prod" for the model with the highest accuracy in production_reg
+            all_versions = client.search_model_versions(f"name='{registered_model_name}'")
+            best_accuracy = -1
+            best_model_version = None
+
+            for mv in all_versions:
+                if mv.tags and "accuracy" in mv.tags:
+                    current_accuracy = float(mv.tags["accuracy"])
+                    if current_accuracy > best_accuracy:
+                        best_accuracy = current_accuracy
+                        best_model_version = mv
+
+            if best_model_version:
+                # Remove "prod" alias from any other model versions
+                for mv in all_versions:
+                    aliases = client.get_model_version_aliases(name=registered_model_name, version=mv.version)
+                    if "prod" in aliases and mv.version != best_model_version.version:
+                        client.delete_model_version_alias(name=registered_model_name, alias="prod", version=mv.version)
+                        print(f"Removed 'prod' alias from version {mv.version}.")
+                
                 client.set_registered_model_alias(
-                    name=model_name,
-                    alias=model_alias,
-                    version=latest_model_version.version
+                    name=registered_model_name,
+                    alias="prod",
+                    version=best_model_version.version
                 )
-                print(f"Model version {latest_model_version.version} of {model_name} aliased as '{model_alias}'.")
+                print(f"Model version {best_model_version.version} of {registered_model_name} aliased as 'prod' with accuracy {best_accuracy:.4f}.")
 
                 # Download model artifacts to evaluation_area/
                 temp_download_dir = "./temp_mlflow_model_download"
@@ -135,7 +152,7 @@ def evaluate_model(config, mlflow_config):
                 os.makedirs(temp_download_dir)
 
                 downloaded_path = mlflow.artifacts.download_artifacts(
-                    artifact_uri=f"runs:/{latest_model_version.run_id}/model",
+                    artifact_uri=f"runs:/{training_run_id}/model",
                     dst_path=temp_download_dir
                 )
                 
@@ -145,10 +162,18 @@ def evaluate_model(config, mlflow_config):
                 shutil.copytree(downloaded_path, output_dir)
                 print(f"Model artifacts copied to {output_dir}")
                 shutil.rmtree(temp_download_dir)
+
             else:
-                print(f"No latest model version found to set alias.")
+                print("No model versions found to set 'prod' alias.")
+
         else:
-            print(f"Evaluation accuracy ({accuracy:.4f}) is not greater than threshold ({threshold:.4f}). Model not aliased.")
+            print(f"Evaluation accuracy ({accuracy:.4f}) is less than threshold ({threshold:.4f}). Registering to testing registry.")
+            mlflow.register_model(
+                model_uri=f"runs:/{training_run_id}/model",
+                name=testing_reg,
+                tags={"accuracy": accuracy}
+            )
+            print(f"Model registered to '{testing_reg}'.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate a defect detection model.")
@@ -156,8 +181,10 @@ if __name__ == "__main__":
                         help="Path to the evaluation configuration file.")
     parser.add_argument("--mlflow_config", type=str, default="mlflow_config.yaml",
                         help="Path to the MLflow configuration file.")
+    parser.add_argument("--training_run_id", type=str, required=True,
+                        help="MLflow Run ID of the training run that produced the model.")
     args = parser.parse_args()
 
     config = load_config(args.config)
     mlflow_config = load_mlflow_config(args.mlflow_config)
-    evaluate_model(config, mlflow_config)
+    evaluate_model(config, mlflow_config, args.training_run_id)
