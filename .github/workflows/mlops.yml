@@ -1,7 +1,7 @@
 name: MLOps Defect Detection Pipeline
 
 on: [push]
-#
+
 jobs:
   build:
     runs-on: [self-hosted, macOS, ARM64]
