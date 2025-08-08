@@ -1,0 +1,6 @@
+model_name: ResNet18
+num_classes: 2
+batch_size: 32
+epochs: 2
+learning_rate: 0.001
+processed_data_dir: data/processed
