@@ -1,6 +1,0 @@
-torch
-torchvision
-mlflow==3.2.0
-Pillow
-scikit-learn
-pyyaml
