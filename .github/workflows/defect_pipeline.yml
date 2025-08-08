@@ -2,64 +2,62 @@ name: Defect Detection Pipeline (Local MLflow)
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 jobs:
-  preprocess:
+  setup-and-preprocess:
     runs-on: self-hosted
 
     steps:
-    - name: Checkout repository
+    - name: Checkout repo
       uses: actions/checkout@v3
 
-    - name: Set up Python environment
+    - name: Setup Python and install dependencies
       run: |
-        python3 -m venv venv
-        source venv/bin/activate
+        python3 -m venv .venv
+        . .venv/bin/activate
         python -m pip install --upgrade pip
-        python -m pip install mlflow==2.12.1 protobuf==3.20.3
-        python -m pip install -r requirements.txt
+        pip install mlflow==2.12.1 protobuf==3.20.3
+        pip install -r requirements.txt
       shell: bash
 
     - name: Start MLflow Tracking Server
       run: |
-        source venv/bin/activate
+        . .venv/bin/activate
         nohup mlflow server \
-          --host 127.0.0.1 \
-          --port 5000 \
           --backend-store-uri sqlite:///mlruns.db \
-          --default-artifact-root ./mlruns > mlflow.log 2>&1 &
-        for i in {1..10}; do curl -s http://127.0.0.1:5000 && break || sleep 1; done
+          --default-artifact-root $(pwd)/mlruns \
+          --host 127.0.0.1 --port 5000 > mlflow.log 2>&1 &
+        for i in {1..15}; do curl -s http://127.0.0.1:5000 && break || sleep 1; done
       shell: bash
 
     - name: Preprocess Data
       run: |
-        source venv/bin/activate
+        . .venv/bin/activate
         python preprocess/preprocess.py --config preprocess/config.yaml
       shell: bash
 
   train:
     runs-on: self-hosted
-    needs: preprocess
+    needs: setup-and-preprocess
 
     steps:
-    - name: Checkout repository
+    - name: Checkout repo
       uses: actions/checkout@v3
 
-    - name: Set up Python environment
+    - name: Setup Python and install dependencies
       run: |
-        python3 -m venv venv
-        source venv/bin/activate
+        python3 -m venv .venv
+        . .venv/bin/activate
         python -m pip install --upgrade pip
-        python -m pip install mlflow==2.12.1 protobuf==3.20.3
-        python -m pip install -r requirements.txt
+        pip install mlflow==2.12.1 protobuf==3.20.3
+        pip install -r requirements.txt
       shell: bash
 
-    - name: Train Model
+    - name: Train model
       run: |
-        source venv/bin/activate
+        . .venv/bin/activate
         python training/train.py --config training/config.yaml --mlflow_config mlflow_config.yaml
       shell: bash
 
@@ -68,21 +66,21 @@ jobs:
     needs: train
 
     steps:
-    - name: Checkout repository
+    - name: Checkout repo
       uses: actions/checkout@v3
 
-    - name: Set up Python environment
+    - name: Setup Python and install dependencies
       run: |
-        python3 -m venv venv
-        source venv/bin/activate
+        python3 -m venv .venv
+        . .venv/bin/activate
         python -m pip install --upgrade pip
-        python -m pip install mlflow==2.12.1 protobuf==3.20.3
-        python -m pip install -r requirements.txt
+        pip install mlflow==2.12.1 protobuf==3.20.3
+        pip install -r requirements.txt
       shell: bash
 
-    - name: Evaluate Model
+    - name: Evaluate model
       run: |
-        source venv/bin/activate
+        . .venv/bin/activate
         python evaluation/evaluate.py --config evaluation/config.yaml --mlflow_config mlflow_config.yaml
       shell: bash
 
@@ -91,22 +89,21 @@ jobs:
     needs: evaluate
 
     steps:
-    - name: Checkout repository
+    - name: Checkout repo
       uses: actions/checkout@v3
 
-    - name: Set up Python environment
+    - name: Setup Python and install dependencies
       run: |
-        python3 -m venv venv
-        source venv/bin/activate
+        python3 -m venv .venv
+        . .venv/bin/activate
         python -m pip install --upgrade pip
-        python -m pip install mlflow==2.12.1 protobuf==3.20.3
-        python -m pip install -r requirements.txt
+        pip install mlflow==2.12.1 protobuf==3.20.3
+        pip install -r requirements.txt
       shell: bash
 
-    - name: Deploy Model (Set 'prod' alias)
+    - name: Deploy model (prod alias)
       run: |
-        echo "If evaluation is successful, the 'prod' alias will be set in the script."
-        echo "Handled inside evaluation/evaluate.py."
+        echo "Handled in evaluation/evaluate.py"
       shell: bash
 
   inference:
@@ -114,21 +111,21 @@ jobs:
     needs: deploy
 
     steps:
-    - name: Checkout repository
+    - name: Checkout repo
       uses: actions/checkout@v3
 
-    - name: Set up Python environment
+    - name: Setup Python and install dependencies
       run: |
-        python3 -m venv venv
-        source venv/bin/activate
+        python3 -m venv .venv
+        . .venv/bin/activate
         python -m pip install --upgrade pip
-        python -m pip install mlflow==2.12.1 protobuf==3.20.3
-        python -m pip install -r requirements.txt
+        pip install mlflow==2.12.1 protobuf==3.20.3
+        pip install -r requirements.txt
       shell: bash
 
-    - name: Run Inference (Example)
+    - name: Run Inference
       run: |
-        source venv/bin/activate
+        . .venv/bin/activate
         DUMMY_IMAGE_PATH="data/test/ok_front/cast_ok_0_10.jpeg"
         if [ -f "$DUMMY_IMAGE_PATH" ]; then
           python inference/infer.py --config inference/config.yaml --mlflow_config mlflow_config.yaml --image_path "$DUMMY_IMAGE_PATH"
