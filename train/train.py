@@ -14,7 +14,7 @@ mlflow.set_experiment("Defect_Detection_CNN_Training")
 
 IMAGE_SIZE = (128, 128)
 BATCH_SIZE = 32
-EPOCHS = 5 # Reduced for faster execution in CI/CD, can be increased
+EPOCHS = 20 # Reduced for faster execution in CI/CD, can be increased
 
 def create_cnn_model(input_shape, num_filters, kernel_size, activation='relu'):
     model = tf.keras.Sequential([
