@@ -1,128 +1,75 @@
-name: Defect Detection Pipeline (with MLflow UI)
+name: Defect Detection Pipeline (Local MLflow)
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
-  mlflow-server:
-    runs-on: self-hosted
+  defect-detection:
+    runs-on: self-hosted  # Your local Mac self-hosted runner
+
     steps:
-    - name: Checkout repo
+    - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Set up Python and Start MLflow Tracking Server
+    - name: Set up Python environment (venv)
       run: |
         python3 -m venv venv
         source venv/bin/activate
-        pip install --upgrade pip
-        pip install mlflow==2.12.1 protobuf==3.20.3
+        python -m pip install --upgrade pip
+        python -m pip install mlflow==2.12.1 protobuf==3.20.3
+        python -m pip install -r requirements.txt
+      shell: bash
+
+    - name: (Optional) Clean old MLflow artifacts
+      run: |
+        rm -rf mlruns.db mlruns
+      shell: bash
+
+    - name: Start MLflow Tracking Server
+      run: |
+        source venv/bin/activate
         nohup mlflow server \
-          --host 0.0.0.0 \
+          --host 127.0.0.1 \
           --port 5000 \
           --backend-store-uri sqlite:///mlruns.db \
-          --default-artifact-root ./mlruns > mlflow_server.log 2>&1 &
-        # Wait for MLflow server to come up
-        for i in {1..15}; do curl -s http://127.0.0.1:5000 && break || sleep 1; done
+          --default-artifact-root ./mlruns > mlflow.log 2>&1 &
+        sleep 10
       shell: bash
 
-  preprocess:
-    runs-on: self-hosted
-    needs: mlflow-server
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Set up Python
-      run: |
-        python3 -m venv venv
-        source venv/bin/activate
-        pip install --upgrade pip
-        pip install -r requirements.txt
-      shell: bash
-
-    - name: Preprocess
+    - name: Preprocess Data
       run: |
         source venv/bin/activate
         python preprocess/preprocess.py --config preprocess/config.yaml
       shell: bash
 
-  train:
-    runs-on: self-hosted
-    needs: preprocess
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Set up Python
-      run: |
-        python3 -m venv venv
-        source venv/bin/activate
-        pip install -r requirements.txt
-      shell: bash
-
-    - name: Train
+    - name: Train Model
       run: |
         source venv/bin/activate
         python training/train.py --config training/config.yaml --mlflow_config mlflow_config.yaml
       shell: bash
 
-  evaluate:
-    runs-on: self-hosted
-    needs: train
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Set up Python
-      run: |
-        python3 -m venv venv
-        source venv/bin/activate
-        pip install -r requirements.txt
-      shell: bash
-
-    - name: Evaluate
+    - name: Evaluate Model
       run: |
         source venv/bin/activate
         python evaluation/evaluate.py --config evaluation/config.yaml --mlflow_config mlflow_config.yaml
       shell: bash
 
-  deploy:
-    runs-on: self-hosted
-    needs: evaluate
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Set up Python
+    - name: Deploy Model (Set 'prod' alias)
       run: |
-        python3 -m venv venv
-        source venv/bin/activate
-        pip install -r requirements.txt
+        echo "If evaluation is successful, the 'prod' alias will be set for the model."
+        echo "This is handled within the evaluation/evaluate.py script."
       shell: bash
 
-    - name: Deploy
-      run: |
-        echo "Handled inside evaluation/evaluate.py"
-      shell: bash
-
-  inference:
-    runs-on: self-hosted
-    needs: deploy
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Set up Python
-      run: |
-        python3 -m venv venv
-        source venv/bin/activate
-        pip install -r requirements.txt
-      shell: bash
-
-    - name: Run Inference
+    - name: Run Inference (Example)
       run: |
         source venv/bin/activate
         DUMMY_IMAGE_PATH="data/test/ok_front/cast_ok_0_10.jpeg"
         if [ -f "$DUMMY_IMAGE_PATH" ]; then
           python inference/infer.py --config inference/config.yaml --mlflow_config mlflow_config.yaml --image_path "$DUMMY_IMAGE_PATH"
         else
-          echo "Dummy image not found. Skipping inference."
+          echo "Dummy image not found at $DUMMY_IMAGE_PATH. Skipping inference example."
         fi
       shell: bash
