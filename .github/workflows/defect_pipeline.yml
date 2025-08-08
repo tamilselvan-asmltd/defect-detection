@@ -7,23 +7,27 @@ on:
   workflow_dispatch:
 
 jobs:
-  defect-detection:
-    runs-on: self-hosted  # Your local Mac self-hosted runner
+  setup:
+    runs-on: self-hosted
+    outputs:
+      venv-path: ${{ steps.setup-env.outputs.venv-path }}
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
 
     - name: Set up Python environment (venv)
+      id: setup-env
       run: |
         python3 -m venv venv
+        echo "venv-path=${PWD}/venv" >> $GITHUB_OUTPUT
         source venv/bin/activate
         python -m pip install --upgrade pip
         python -m pip install mlflow==2.12.1 protobuf==3.20.3
         python -m pip install -r requirements.txt
       shell: bash
 
-    - name: (Optional) Clean old MLflow artifacts
+    - name: Clean old MLflow artifacts
       run: |
         rm -rf mlruns.db mlruns
       shell: bash
@@ -36,8 +40,16 @@ jobs:
           --port 5000 \
           --backend-store-uri sqlite:///mlruns.db \
           --default-artifact-root ./mlruns > mlflow.log 2>&1 &
-        sleep 10
+        for i in {1..10}; do curl -s http://127.0.0.1:5000 && break || sleep 1; done
       shell: bash
+
+  preprocess:
+    runs-on: self-hosted
+    needs: setup
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
     - name: Preprocess Data
       run: |
@@ -45,11 +57,27 @@ jobs:
         python preprocess/preprocess.py --config preprocess/config.yaml
       shell: bash
 
+  train:
+    runs-on: self-hosted
+    needs: preprocess
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
     - name: Train Model
       run: |
         source venv/bin/activate
         python training/train.py --config training/config.yaml --mlflow_config mlflow_config.yaml
       shell: bash
+
+  evaluate:
+    runs-on: self-hosted
+    needs: train
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
     - name: Evaluate Model
       run: |
@@ -57,11 +85,27 @@ jobs:
         python evaluation/evaluate.py --config evaluation/config.yaml --mlflow_config mlflow_config.yaml
       shell: bash
 
+  deploy:
+    runs-on: self-hosted
+    needs: evaluate
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
     - name: Deploy Model (Set 'prod' alias)
       run: |
-        echo "If evaluation is successful, the 'prod' alias will be set for the model."
-        echo "This is handled within the evaluation/evaluate.py script."
+        echo "If evaluation is successful, the 'prod' alias will be set in the script."
+        echo "Handled within evaluation/evaluate.py."
       shell: bash
+
+  inference:
+    runs-on: self-hosted
+    needs: deploy
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
     - name: Run Inference (Example)
       run: |
@@ -70,6 +114,6 @@ jobs:
         if [ -f "$DUMMY_IMAGE_PATH" ]; then
           python inference/infer.py --config inference/config.yaml --mlflow_config mlflow_config.yaml --image_path "$DUMMY_IMAGE_PATH"
         else
-          echo "Dummy image not found at $DUMMY_IMAGE_PATH. Skipping inference example."
+          echo "Dummy image not found. Skipping inference."
         fi
       shell: bash
