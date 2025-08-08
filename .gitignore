@@ -1,0 +1,30 @@
+# Ignore Python virtual environments
+.env/
+casting_defect_detection/
+
+# Ignore Python cache files
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+
+# Ignore model artifacts and experiment tracking
+mlartifacts/
+mlruns/
+temp_best_model/
+best_model_info.txt
+
+# Ignore data and temporary files
+data/
+*.log
+*.tmp
+
+# Ignore system and editor files
+.DS_Store
+*.swp
+*.swo
+
+
+
+# If using secrets or API keys in .env
+.env
