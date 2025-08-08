@@ -30,3 +30,5 @@ temp_best_model/
 
 # If using secrets or API keys in .env
 .env
+temp_best_model/
+*.keras
