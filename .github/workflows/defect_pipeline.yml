@@ -1,0 +1,60 @@
+
+name: Defect Detection Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+
+    - name: Start MLflow Tracking Server (for local artifact storage)
+      run: |
+        mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:///mlruns.db --default-artifact-root ./mlruns &
+        sleep 5 # Give MLflow server time to start
+
+    - name: Preprocess Data
+      run: python preprocess/preprocess.py --config preprocess/config.yaml
+
+    - name: Train Model
+      run: python training/train.py --config training/config.yaml --mlflow_config mlflow_config.yaml
+
+    - name: Evaluate Model
+      run: python evaluation/evaluate.py --config evaluation/config.yaml --mlflow_config mlflow_config.yaml
+
+    - name: Deploy Model (Set 'prod' alias)
+      run: |
+        echo "If evaluation is successful, the 'prod' alias will be set for the model."
+        echo "This is handled within the evaluation/evaluate.py script."
+
+    - name: Run Inference (Example)
+      run: |
+        # This step demonstrates inference. In a real scenario, this would be a separate service.
+        # For this example, we'll use a dummy image path. Replace with a real test image if available.
+        DUMMY_IMAGE_PATH="data/test/ok_front/cast_ok_0_10.jpeg" # Replace with an actual image path from your test set
+        if [ -f "$DUMMY_IMAGE_PATH" ]; then
+          python inference/infer.py --config inference/config.yaml --mlflow_config mlflow_config.yaml --image_path "$DUMMY_IMAGE_PATH"
+        else
+          echo "Dummy image not found at $DUMMY_IMAGE_PATH. Skipping inference example."
+        fi
+
+    - name: Archive MLflow artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: mlflow-artifacts
+        path: mlruns
+
