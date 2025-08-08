@@ -24,7 +24,9 @@ data/
 *.swp
 *.swo
 
-
+# Model files
+temp_best_model/
+*.keras
 
 # If using secrets or API keys in .env
 .env
