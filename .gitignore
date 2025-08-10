@@ -35,3 +35,4 @@ temp_best_model/
 
 temp_best_model/
 *.keras
+data/
