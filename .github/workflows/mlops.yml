@@ -28,8 +28,8 @@ jobs:
     - name: Install Python dependencies
       run: pip install -r requirements.txt
 
-    - name: Start Flask API in background
-      run: ./start_api.sh
+    #- name: Start Flask API in background
+    #  run: ./start_api.sh
 
     - name: Set MLflow Tracking URI
       run: echo "MLFLOW_TRACKING_URI=http://localhost:5000/" >> $GITHUB_ENV
