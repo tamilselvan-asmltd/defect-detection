@@ -287,3 +287,36 @@ Contributions are welcome! Please follow these steps:
 ## License
 
 This project is licensed under the MIT License. See the `LICENSE` file (if present, otherwise assume standard open-source practices) for details.
+```
+### todo
+INITIAL TRAINING
+[Start] 
+   ↓
+[Train Model]
+   ↓
+[Validate During Training]
+   ↓
+[Evaluate on Test Set]
+   ↓
+[Register Model in MLflow Registry]
+   ↓
+[Promote to Production]
+
+RETRAINING
+[Retrain Trigger]
+   ↓
+[Load Base Model from Registry] or [Train from Scratch]
+   ↓
+[Train Model]
+   ↓
+[Validate During Training]
+   ↓
+[Compare with Production Model]
+   ↓ Yes (Better?)
+[Evaluate on Test Set]
+   ↓ Yes (Better?)
+[Register in Registry]
+   ↓
+[Promote to Production]
+
+```
