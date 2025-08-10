@@ -207,6 +207,7 @@ A Flask API is provided to trigger the model re-training process.
 
 The following diagram illustrates the main components and their interactions within the defect detection system:
 
+```
 ```mermaid
 graph TD
     subgraph Data Management
@@ -259,6 +260,9 @@ graph TD
     style L fill:#bbf,stroke:#333,stroke-width:2px
     style M fill:#f9f,stroke:#333,stroke-width:2px
     style N fill:#bbf,stroke:#333,stroke-width:2px
+```
+
+
 ```
 
 **Explanation of Flow:**
