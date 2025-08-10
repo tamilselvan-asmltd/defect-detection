@@ -77,24 +77,33 @@ This project implements an MLOps pipeline for training a Convolutional Neural Ne
 
 ```mermaid
 graph TD
-    A[Push to GitHub] --> B{GitHub Actions Workflow Triggered}
-    B --> C[Checkout Code]
-    C --> D[Setup Python Environment]
-    D --> E[Install Dependencies]
-    E --> F[Set MLflow Tracking URI]
-    F --> G[Run Training Script (src/train.py)]
-    G --> H[Log Training Metrics & Model to MLflow]
+    A[Developer Push to GitHub] --> B{GitHub Actions Workflow Triggered}
+    B --> C[Checkout Code & Setup Environment]
+    C --> D[Install Dependencies]
+    D --> E[Set MLflow Tracking URI]
+
+    E --> F[Run Training Script (src/train.py)]
+    F --> G[Log Training Metrics & Model to MLflow Tracking]
+    G --> H[Save Best Model Info Locally]
+
     H --> I[Run Evaluation Script (src/evaluation.py)]
-    I --> J[Evaluate Model & Log Metrics to MLflow]
-    J --> K{Accuracy >= Threshold?}
-    K -- Yes --> L[Register Model as Production_Reg]
-    K -- No --> M[Register Model as Testing_Reg]
-    L --> N[Manage Production_Reg Aliases (set 'prod' to best version)]
-    M --> O[Run Inference Script (src/inference.py)]
-    N --> O
-    O --> P[Load 'prod' Model from MLflow Registry]
-    P --> Q[Perform Inference on Sample Images]
-    Q --> R[End]
+    I --> J[Load Best Model from Training]
+    J --> K[Evaluate Model on Test Data]
+    K --> L[Log Evaluation Metrics to MLflow Tracking]
+
+    L --> M{Accuracy >= 60%?}
+    M -- Yes --> N[Register Model to MLflow Model Registry (Production_Reg)]
+    M -- No --> O[Register Model to MLflow Model Registry (Testing_Reg)]
+
+    N --> P[Compare Production_Reg Versions by Accuracy]
+    P --> Q[Set 'prod' Alias to Best Version in Production_Reg]
+
+    Q --> R[Run Inference Script (src/inference.py)]
+    O --> R
+
+    R --> S[Pull Model with 'prod' Alias from MLflow Registry]
+    S --> T[Perform Inference on Sample Images]
+    T --> U[End CI/CD Workflow]
 ```
 
 ## Running Locally
