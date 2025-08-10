@@ -116,3 +116,14 @@ if __name__ == "__main__":
         f.write(f"run_id:{best_run_id}\n")
         f.write(f"model_path:{best_model_path}\n")
     print("Best model info saved to best_model_info.txt")
+
+    # Register the best model in MLflow Model Registry
+    if best_run_id:
+        print(f"Registering model for run ID: {best_run_id}")
+        # The model artifact path is typically 'model' when autologging TensorFlow models
+        model_uri = f"runs:/{best_run_id}/model"
+        mlflow.register_model(
+            model_uri=model_uri,
+            name="DefectDetectionModel"
+        )
+        print("Best model registered in MLflow Model Registry.")
