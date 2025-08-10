@@ -4,7 +4,7 @@ paths:
 model_parameters:
   image_size: [256, 256]
   batch_size: 32
-  epochs: 50
+  epochs: 5
 
 model_training_parameters:
   model_path: temp_best_model
