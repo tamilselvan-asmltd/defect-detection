@@ -1,0 +1,19 @@
+paths:
+  data_path: data
+
+model_parameters:
+  image_size: [128, 128]
+  batch_size: 32
+  epochs: 12  # For re-training, keep fewer epochs to fine-tune
+  learning_rate: 0.0001
+
+mlflow:
+  testing_model_name: Testing_Reg
+  testing_model_alias: re-train
+  experiment_name: Re-train
+  evaluation_threshold: 0.70
+  production_model_name: Production_Reg
+
+inference_examples:
+  defective_image: test/def_front/cast_def_0_1153.jpeg
+  ok_image: test/ok_front/cast_ok_0_10.jpeg
