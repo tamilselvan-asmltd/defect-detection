@@ -1,66 +1,56 @@
-# MLOps Defect Detection Pipeline
+# Defect Detection System
 
-This project implements an MLOps pipeline for training a Convolutional Neural Network (CNN) to detect defects in images. It leverages MLflow for experiment tracking and model registry, and GitHub Actions for Continuous Integration/Continuous Deployment (CI/CD).
+This project implements a defect detection system using Convolutional Neural Networks (CNNs) for image classification. It leverages MLflow for experiment tracking, model management, and deployment, providing a robust MLOps pipeline. The system includes functionalities for training, evaluation, inference, and an API for triggering model re-training.
 
-## Project Structure
+## Table of Contents
 
-```
-.
-├── .github/
-│   └── workflows/
-│       └── mlops.yml
-├── data/
-│   ├── train/
-│   │   ├── def_front/
-│   │   └── ok_front/
-│   └── test/
-│       ├── def_front/
-│       └── ok_front/
-├── src/
-│   ├── train.py
-│   ├── evaluation.py
-│   └── inference.py
-├── requirements.txt
-├── README.md
-└── .env
-```
+- [Project Description and Purpose](#project-description-and-purpose)
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+  - [Training](#training)
+  - [Evaluation](#evaluation)
+  - [Inference](#inference)
+  - [Re-training API](#re-training-api)
+- [File and Folder Structure](#file-and-folder-structure)
+- [Technical Details and Technologies Used](#technical-details-and-technologies-used)
+- [API Endpoints](#api-endpoints)
+- [Project Logic Flow](#project-logic-flow)
+- [Contribution Guidelines](#contribution-guidelines)
+- [License](#license)
+
+## Project Description and Purpose
+
+The primary purpose of this project is to automatically identify defects in images using deep learning. It's designed to be a scalable and manageable solution for MLOps, integrating MLflow to streamline the machine learning lifecycle from experimentation to production deployment. The system can be used to:
+
+- Train and evaluate CNN models for image classification.
+- Track experiments and model performance using MLflow.
+- Manage model versions and aliases in the MLflow Model Registry.
+- Perform inference on new images.
+- Provide an API endpoint to trigger model re-training with updated data or configurations.
 
 ## Features
 
--   **Training (`src/train.py`):**
-    -   Trains a CNN image classifier using TensorFlow.
-    -   Performs training with 3 different hyperparameter sets.
-    -   Tracks all runs (metrics, parameters, artifacts) in MLflow, with experiment names prefixed by `train/`.
-    -   Automatically determines and saves the model with the highest validation accuracy.
+- **MLflow Integration**: Comprehensive tracking of experiments, parameters, metrics, and models.
+- **Model Versioning**: Manages different versions of models in the MLflow Model Registry.
+- **Dynamic Model Promotion**: Automatically promotes models to "Production" or "Testing" based on evaluation thresholds.
+- **Re-training API**: A Flask API endpoint to initiate model re-training on demand.
+- **Configurable**: Uses `config.yaml` for easy adjustment of model parameters, training settings, and MLflow configurations.
 
--   **Evaluation (`src/evaluation.py`):**
-    -   Loads the best model from training.
-    -   Evaluates it on an unseen test dataset (`data/test`).
-    -   Registers the model in MLflow Model Registry under "Production_Reg" (if accuracy >= 60%) or "Testing_Reg" (if accuracy < 60%).
-    -   Adds a tag `acc:<evaluation_accuracy>` during registration.
-    -   For "Production_Reg", compares all versions' `acc` tags and sets the alias "prod" to the model version with the highest accuracy.
+## Installation
 
--   **Inference (`inference/inference.py`):**
-    -   Pulls the model from MLflow Model Registry where `alias == "prod"`.
-    -   Runs inference on given input images.
-
--   **GitHub Actions (`.github/workflows/mlops.yml`):**
-    -   CI/CD workflow that runs on a macOS ARM self-hosted runner.
-    -   Automates code checkout, Python environment setup, dependency installation, training, evaluation, and inference tests.
-    -   Enables caching of dependencies for faster execution.
-
-## Setup
+To set up the project locally, follow these steps:
 
 1.  **Clone the repository:**
     ```bash
-    git clone <your-repo-url>
+    git clone <repository_url>
     cd defect-detection
     ```
 
 2.  **Create a Python virtual environment (recommended):**
     ```bash
-    python3 -m venv venv
-    source venv/bin/activate
+    python -m venv venv
+    source venv/bin/activate  # On Windows: `venv\Scripts\activate`
     ```
 
 3.  **Install dependencies:**
@@ -68,181 +58,228 @@ This project implements an MLOps pipeline for training a Convolutional Neural Ne
     pip install -r requirements.txt
     ```
 
-4.  **Configure MLflow Tracking URI:**
-    Create a `.env` file in the project root with the following content:
+4.  **Prepare your data:**
+    Place your image datasets in the `data/train` and `data/test` directories. The expected structure is:
     ```
-        This configures MLflow to store tracking data locally in the `mlruns` directory. For a remote MLflow server, replace `file:./mlruns` with your server's URI (e.g., `http://your-mlflow-server:5000`).
+    data/
+    ├── train/
+    │   ├── class_0/
+    │   └── class_1/
+    └── test/
+        ├── class_0/
+        └── class_1/
+    ```
+    Where `class_0` and `class_1` are your "OK" and "Defective" image folders, respectively.
 
-## Workflow Diagram
-
-```mermaid
-graph TD
-    A[Developer Push to GitHub] --> B{GitHub Actions Workflow Triggered}
-    B --> C[Checkout Code & Setup Environment]
-    C --> D[Install Dependencies]
-    D --> E[Set MLflow Tracking URI]
-
-    E --> F[Run Training Script (src/train.py)]
-    F --> G[Log Training Metrics & Model to MLflow Tracking]
-    G --> H[Save Best Model Info Locally]
-
-    H --> I[Run Evaluation Script (src/evaluation.py)]
-    I --> J[Load Best Model from Training]
-    J --> K[Evaluate Model on Test Data]
-    K --> L[Log Evaluation Metrics to MLflow Tracking]
-
-    L --> M{Accuracy >= 60%?}
-    M -- Yes --> N[Register Model to MLflow Model Registry (Production_Reg)]
-    M -- No --> O[Register Model to MLflow Model Registry (Testing_Reg)]
-
-    N --> P[Compare Production_Reg Versions by Accuracy]
-    P --> Q[Set 'prod' Alias to Best Version in Production_Reg]
-
-    Q --> R[Run Inference Script (src/inference.py)]
-    O --> R
-
-    R --> S[Pull Model with 'prod' Alias from MLflow Registry]
-    S --> T[Perform Inference on Sample Images]
-    T --> U[End CI/CD Workflow]
-```
-
-## Running Locally
-
-Ensure your virtual environment is activated.
-
-1.  **Start MLflow Tracking Server (Optional, but Recommended for UI):**
-    If you want to view the MLflow UI and track experiments locally, start the MLflow UI server in a separate terminal:
+5.  **Start MLflow Tracking Server:**
+    The project expects an MLflow Tracking Server to be running. You can start one locally:
     ```bash
     mlflow ui --host 0.0.0.0 --port 5000
     ```
-    Then open your web browser and navigate to `http://localhost:5000`.
+    The tracking UI will be accessible at `http://localhost:5000`.
 
-2.  **Run Training:**
-    This will train the models, log runs to MLflow under the `train/` experiment, and save the best model's information.
-    ```bash
-    python src/train.py
-    ```
+## Usage
 
-3.  **Run Evaluation:**
-    This will load the best model, evaluate it, and register it in the MLflow Model Registry. Evaluation runs will be logged under the `eval/` experiment.
-    ```bash
-    python src/evaluation.py
-    ```
+### Training
 
-4.  **Run Inference:**
-    This will pull the production model and perform sample inferences.
-    ```bash
-    python src/inference.py
-    ```
+The `train.py` script trains the CNN model, logs experiments to MLflow, and saves the best model.
 
-## Model Retraining API
+```bash
+python src/train.py
+```
 
-This project includes a Flask API (`api.py`) that allows you to trigger model retraining and configure its parameters. This is particularly useful when running on a self-hosted runner, as the API can persist in the background.
+This will:
+- Train models with different hyperparameter sets defined in `config.yaml`.
+- Log each training run to MLflow.
+- Save the best performing model locally to `temp_best_model/best_cnn_model.keras`.
+- Update `best_model_info.txt` with the best run's details.
+- Register the best model in the MLflow Model Registry.
 
-### 1. API Overview
+### Evaluation
 
-*   **`api.py`**: A simple Flask application that exposes a `/retrain` endpoint. When a POST request is received, it executes the `re_train.py` script.
-*   **`re_train/re_train.py`**: The core retraining script. It loads model parameters (epochs, batch size, learning rate) directly from `re_train/re_train.yaml`.
-*   **`re_train/re_train.yaml`**: This YAML file is where you define the default parameters for the retraining process.
+The `evaluation.py` script evaluates the best trained model and manages its registration and aliases in the MLflow Model Registry.
 
-    ```yaml
-    # Example content of re_train/re_train.yaml
-    paths:
-      data_path: data
+```bash
+python src/evaluation.py
+```
 
-    model_parameters:
-      image_size: [128, 128]
-      batch_size: 32
-      epochs: 12
-      learning_rate: 0.0001 # Configure your learning rate here
+This script will:
+- Load the best model identified during training.
+- Evaluate its performance on the test dataset.
+- Register the model as `Production_Reg` or `Testing_Reg` based on the `evaluation_threshold` in `config.yaml`.
+- Manage the `prod` alias for `Production_Reg`, ensuring the highest accuracy model gets this alias.
 
-    mlflow:
-      testing_model_name: Testing_Reg
-      testing_model_alias: re-train
-      experiment_name: Re-train
-      evaluation_threshold: 0.70
-      production_model_name: Production_Reg
+### Inference
 
-    inference_examples:
-      defective_image: test/def_front/cast_def_0_1153.jpeg
-      ok_image: test/ok_front/cast_ok_0_10.jpeg
-    ```
+The `inference.py` script demonstrates how to load a model from the MLflow Model Registry and perform predictions.
 
-### 2. Running the API Locally
+```bash
+python src/inference.py
+```
 
-To run the Flask API on your local machine:
+This will:
+- Load the model specified by `inference_model_name` and `inference_model_alias` from `config.yaml` (e.g., `Production_Reg@prod`).
+- Perform inference on example images defined in `config.yaml`.
 
-1.  **Install Dependencies:** Ensure all required Python packages are installed:
-    ```bash
-    pip install -r requirements.txt
-    ```
-2.  **Run the API Server:** Navigate to your project's root directory and execute:
+### Re-training API
+
+A Flask API is provided to trigger the model re-training process.
+
+1.  **Start the Flask API:**
     ```bash
     python api.py
     ```
-    The API will typically start on `http://0.0.0.0:5001`.
+    The API will run on `http://0.0.0.0:5001`.
 
-### 3. Triggering Retraining via Postman
-
-Once the API server is running, you can trigger the retraining process using Postman:
-
-*   **Method:** `POST`
-*   **URL:** `http://localhost:5001/retrain`
-*   **Headers:** `Content-Type: application/json` (optional, as no body is sent)
-*   **Body:** No body data is required. The `re_train.py` script will use the parameters defined in `re_train/re_train.yaml`.
-
-### 4. Persistent API on Self-Hosted Runner
-
-To ensure the Flask API runs persistently in the background on your self-hosted GitHub Actions runner, the workflow uses a dedicated script:
-
-*   **`start_api.sh`**: This script uses `nohup` to start `api.py` in the background, ensuring it continues to run even after the GitHub Actions job completes. Its output is redirected to `api.log`.
-
+2.  **Trigger re-training:**
+    You can send a POST request to the `/retrain` endpoint.
     ```bash
-    #!/bin/bash
-    echo "Starting Flask API in background..."
-    nohup python api.py > api.log 2>&1 &
-    echo "Flask API started. Check api.log for output."
+    curl -X POST http://localhost:5001/retrain
     ```
+    This will execute the `re_train/re_train.py` script, which loads a model from MLflow, re-trains it, and potentially updates the model registry.
 
-*   **`.github/workflows/mlops.yml`**: The workflow now calls `start_api.sh` to initiate the API.
+## File and Folder Structure
 
-    ```yaml
-        - name: Start Flask API in background
-          run: ./start_api.sh
-    ```
-
-**To stop the persistent Flask API on your self-hosted runner:**
-
-You will need to manually find and terminate the process.
-1.  **Find the process ID (PID):**
-    ```bash
-    ps aux | grep api.py
-    ```
-    Look for a line similar to `python api.py` and note its PID.
-2.  **Kill the process:**
-    ```bash
-    kill <PID>
-    ```
-    Replace `<PID>` with the actual process ID you found.
-
-### 5. Running `re_train.py` Directly
-
-You can also run the retraining script directly from your terminal. It will use the parameters specified in `re_train/re_train.yaml`:
-
-```bash
-python re_train/re_train.py
+```
+.
+├── .github/
+│   └── workflows/
+│       └── mlops.yml         # GitHub Actions workflow for CI/CD
+├── api.py                    # Flask API for triggering re-training
+├── best_model_info.txt       # Stores run_id and path of the best trained model
+├── config.yaml               # Main configuration file for the project
+├── requirements.txt          # Python dependencies
+├── data/                     # Placeholder for training and testing datasets
+│   ├── test/
+│   └── train/
+├── re_train/
+│   ├── re_train.py           # Script for re-training the model
+│   └── re_train.yaml         # Configuration specific to re-training
+└── src/
+    ├── evaluation.py         # Script for model evaluation and MLflow Model Registry management
+    ├── inference.py          # Script for performing model inference
+    └── train.py              # Script for model training and experiment tracking
 ```
 
-## GitHub Actions CI/CD
+## Technical Details and Technologies Used
 
-The `.github/workflows/mlops.yml` file defines the CI/CD pipeline. It is configured to run on a `self-hosted` macOS ARM64 runner upon every push to the repository.
+-   **Python**: The primary programming language.
+-   **TensorFlow/Keras**: For building and training the Convolutional Neural Network models.
+-   **MLflow**: Used extensively for:
+    -   **Experiment Tracking**: Logging parameters, metrics, and artifacts.
+    -   **Model Registry**: Managing model versions, stages (Production, Staging, Archived), and aliases.
+-   **Flask**: A micro web framework used to create the re-training API.
+-   **scikit-learn**: For calculating evaluation metrics (e.g., accuracy).
+-   **Pillow**: For image preprocessing.
+-   **PyYAML**: For handling configuration files.
+-   **python-dotenv**: For managing environment variables (e.g., MLflow Tracking URI).
+-   **GitHub Actions**: For Continuous Integration/Continuous Deployment (CI/CD) pipeline automation.
 
-**Setting up a Self-Hosted Runner:**
+## API Endpoints
 
-To use the GitHub Actions workflow, you need to set up a self-hosted runner on your macOS ARM machine. Follow the official GitHub documentation for setting up self-hosted runners:
+### `/retrain`
 
-[Adding self-hosted runners - GitHub Docs](https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/adding-self-hosted-runners)
+-   **Method**: `POST`
+-   **Description**: Triggers the model re-training process by executing the `re_train/re_train.py` script. This is a blocking call, meaning the API will wait for the re-training to complete before returning a response.
+-   **Request Body**: None
+-   **Response**:
+    -   `200 OK`:
+        ```json
+        {
+            "status": "success",
+            "message": "Model retraining initiated successfully.",
+            "stdout": "...",
+            "stderr": "..."
+        }
+        ```
+    -   `500 Internal Server Error`:
+        ```json
+        {
+            "status": "error",
+            "message": "Error during model retraining.",
+            "error_details": "...",
+            "stdout": "...",
+            "stderr": "..."
+        }
+        ```
 
-Ensure your self-hosted runner is configured with the labels `macOS` and `ARM64` (or whatever labels you define in your runner setup) to match the `runs-on` configuration in `mlops.yml`.
+## Project Logic Flow
 
-Once set up, any push to your repository will trigger the workflow, executing the training, evaluation, and inference steps automatically.
+The following diagram illustrates the main components and their interactions within the defect detection system:
+
+```mermaid
+graph TD
+    subgraph Data Management
+        A[Raw Image Data] --> B{Data Preprocessing};
+    end
+
+    subgraph Training & Experimentation
+        B --> C[src/train.py (Model Training)];
+        C --> D[MLflow Tracking Server];
+        C --> E[Local Best Model (temp_best_model/best_cnn_model.keras)];
+        E --> F[best_model_info.txt];
+    end
+
+    subgraph Model Evaluation & Registry
+        F --> G[src/evaluation.py (Model Evaluation)];
+        G --> D;
+        G --> H{MLflow Model Registry};
+    end
+
+    subgraph Inference
+        H -- "Production_Reg@prod" --> I[src/inference.py (Model Inference)];
+        I --> J[Prediction Results];
+    end
+
+    subgraph Re-training & API
+        K[Flask API (api.py)] -- POST /retrain --> L[re_train/re_train.py (Model Re-training)];
+        L --> D;
+        L --> H;
+        H -- "Testing_Reg@re-train" --> L;
+    end
+
+    subgraph CI/CD
+        M[GitHub Push] --> N[MLOps Workflow (.github/workflows/mlops.yml)];
+        N --> C;
+        N --> G;
+        N --> I;
+    end
+
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style B fill:#bbf,stroke:#333,stroke-width:2px
+    style C fill:#bbf,stroke:#333,stroke-width:2px
+    style D fill:#fcf,stroke:#333,stroke-width:2px
+    style E fill:#fcf,stroke:#333,stroke-width:2px
+    style F fill:#fcf,stroke:#333,stroke-width:2px
+    style G fill:#bbf,stroke:#333,stroke-width:2px
+    style H fill:#fcf,stroke:#333,stroke-width:2px
+    style I fill:#bbf,stroke:#333,stroke-width:2px
+    style J fill:#f9f,stroke:#333,stroke-width:2px
+    style K fill:#bbf,stroke:#333,stroke-width:2px
+    style L fill:#bbf,stroke:#333,stroke-width:2px
+    style M fill:#f9f,stroke:#333,stroke-width:2px
+    style N fill:#bbf,stroke:#333,stroke-width:2px
+```
+
+**Explanation of Flow:**
+
+1.  **Data Management**: Raw image data is preprocessed and organized for training and testing.
+2.  **Training & Experimentation**: `src/train.py` trains the CNN model, logging all experiment details (parameters, metrics, models) to the MLflow Tracking Server. The best model is saved locally and its details are recorded in `best_model_info.txt`.
+3.  **Model Evaluation & Registry**: `src/evaluation.py` uses the best model's info to load and evaluate it. Based on performance, the model is registered in the MLflow Model Registry, potentially being promoted to `Production_Reg` with a `prod` alias.
+4.  **Inference**: `src/inference.py` loads the production-ready model from the MLflow Model Registry (e.g., `Production_Reg@prod`) to make predictions on new images.
+5.  **Re-training & API**: The Flask `api.py` exposes a `/retrain` endpoint. Calling this endpoint triggers `re_train/re_train.py`, which loads a `Testing_Reg@re-train` model from the registry, re-trains it, and re-evaluates, potentially updating the model in the registry.
+6.  **CI/CD**: The GitHub Actions workflow (`mlops.yml`) automates the training, evaluation, and inference steps upon code pushes, ensuring continuous integration and deployment practices.
+
+## Contribution Guidelines
+
+Contributions are welcome! Please follow these steps:
+
+1.  Fork the repository.
+2.  Create a new branch for your feature or bug fix.
+3.  Make your changes and ensure the code adheres to existing style and quality.
+4.  Write appropriate tests for your changes.
+5.  Submit a pull request with a clear description of your changes.
+
+## License
+
+This project is licensed under the MIT License. See the `LICENSE` file (if present, otherwise assume standard open-source practices) for details.
